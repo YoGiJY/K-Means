@@ -1,0 +1,174 @@
+
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <math.h>
+#include <Windows.h>
+#define k 2
+using namespace std;
+//存放元组的属性信息
+struct Tuple {
+	float attr1;
+	float attr2;
+};
+//计算两个元组间的欧几里距离
+float getDistXY(Tuple t1, Tuple t2)
+{
+	return sqrt((t1.attr1 - t2.attr1) * (t1.attr1 - t2.attr1) + (t1.attr2 - t2.attr2) * (t1.attr2 - t2.attr2));
+}
+
+//根据质心，决定当前元组属于哪个簇
+int clusterOfTuple(Tuple means[], Tuple tuple) {
+	float dist = getDistXY(means[0], tuple);
+	float tmp;
+	int label = 0;//标示属于哪一个簇
+	for (int i = 1;i<k;i++) {
+		tmp = getDistXY(means[i], tuple);
+		if (tmp<dist) { dist = tmp;label = i; }
+	}
+	return label;
+}
+
+//获得给定簇集的平方误差
+float getVar(vector<Tuple> clusters[], Tuple means[]) {
+	float var = 0;
+	for (int i = 0; i < k; i++)
+	{
+		vector<Tuple> t = clusters[i];
+		for (int j = 0; j< t.size(); j++)
+		{
+			var += getDistXY(t[j], means[i]);
+		}
+	}
+	return var;
+
+}
+
+//获得当前簇的均值（质心）
+Tuple getMeans(vector<Tuple> cluster) {
+
+	int num = cluster.size();
+	double meansX = 0, meansY = 0;
+	Tuple t;
+	for (int i = 0; i < num; i++)
+	{
+		meansX += cluster[i].attr1;
+		meansY += cluster[i].attr2;
+	}
+	t.attr1 = meansX / num;
+	t.attr2 = meansY / num;
+	return t;
+}
+
+
+//K-means核心算法的实现
+void KMeans(vector<Tuple> tuples) {
+	vector<Tuple> clusters[k];
+	Tuple means[k];
+	int attr1 = 0;
+	int attr2 = 0;
+	int i = 0;
+	//默认一开始将第1个元组的值作为第1个簇的质心
+	means[0].attr1 = tuples[0].attr1;
+	means[0].attr2 = tuples[0].attr2;
+	//默认一开始将第1个元组的值作为第2个簇的质心
+	means[1].attr1 = tuples[3].attr1;
+	means[1].attr2 = tuples[3].attr2;
+
+	int lable = 0;
+	//根据默认的质心给簇赋值
+	for (i = 0;i<3;++i) {
+		clusters[0].push_back(tuples[i]);
+	}
+	for (i = 3;i < 5;++i) {
+		clusters[1].push_back(tuples[i]);
+	}
+	//输出刚开始的簇
+	for (lable = 0;lable<2;lable++) {
+		cout << "第" << lable + 1 << "个簇：" << endl;
+		vector<Tuple> t = clusters[lable];
+		for (i = 0; i< t.size(); i++)
+		{
+			cout << "(" << t[i].attr1 << "," << t[i].attr2 << ")" << "   ";
+		}
+		cout << "簇心: " << "(" << means[lable].attr1 << "," << means[lable].attr2 << ")" << endl;
+	}
+	cout << endl;
+	cout << endl;
+
+	float oldVar = -1;
+	float newVar = getVar(clusters, means);
+	//当新旧函数值相差不到1即准则函数值不发生明显变化时，算法终止
+	while (abs(newVar - oldVar) >= 1) 
+	{
+		for (i = 0; i < k; i++) //s
+		{
+			clusters[i].clear();
+		}
+		//根据新的质心获得新的簇
+		for (i = 0;i != tuples.size();++i) {
+			lable = clusterOfTuple(means, tuples[i]);
+			clusters[lable].push_back(tuples[i]);
+		}
+		//输出当前的簇
+		for (lable = 0;lable<2;lable++) {
+			cout << "第" << lable + 1 << "个簇：" << endl;
+			vector<Tuple> t = clusters[lable];
+			attr1 = 0;
+			attr2 = 0;
+			for (i = 0; i< t.size(); i++)
+			{
+				cout << "(" << t[i].attr1 << "," << t[i].attr2 << ")" << "   ";
+				attr1 = t[i].attr1 + attr1;
+				attr2 = t[i].attr2 + attr2;
+			}
+			cout << "簇心: " << "(" << (float)attr1 /t.size()<< "," << (float)attr2/t.size() << ")" << endl;
+		}
+
+		for (i = 0; i < k; i++) //更新每个簇的中心点
+		{
+			means[i] = getMeans(clusters[i]);
+		}
+		oldVar = newVar;
+		newVar = getVar(clusters, means); //计算新的准则函数值
+	}
+
+}
+int main() {
+	vector<Tuple> tuples;
+	Tuple tuple;
+	//A1
+	tuple.attr1=2;
+	tuple.attr2 =12;
+	tuples.push_back(tuple);
+	//A2
+	tuple.attr1 = 3;
+	tuple.attr2 = 7;
+	tuples.push_back(tuple);
+	//A3
+	tuple.attr1 = 8;
+	tuple.attr2 = 4;
+	tuples.push_back(tuple);
+	//B1
+	tuple.attr1 = 1;
+	tuple.attr2 = 2;
+	tuples.push_back(tuple);
+	//B2
+	tuple.attr1 = 3;
+	tuple.attr2 = 9;
+	tuples.push_back(tuple);
+
+	//输出元组信息
+	cout << "参与的数据如下：" << endl;
+	for (vector<Tuple>::size_type ix = 0;ix != tuples.size();++ix)
+		cout << "(" << tuples[ix].attr1 << "," << tuples[ix].attr2 << ")" << "    ";
+	cout << endl<<endl;
+
+	cout << "计算簇心如下：" << endl<<endl;
+	cout << "初始分组如下:" << endl;
+	//算法入口
+	KMeans(tuples);
+
+	system("pause");
+	return 0;
+}
